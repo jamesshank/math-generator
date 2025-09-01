@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Single‑Digit Math Worksheets — Clean v4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @page { size: Letter; margin: 0.5in; }
+    @media print {
+      .toolbar { display: none !important; }
+      body { background:#fff; }
+      .page { box-shadow:none; margin:0 auto; }
+      .grid { max-width:100%; width:100%; column-gap:6px; row-gap:12px; }
+      .cell { margin:2px 0; padding:6px 2px; height:auto; min-height:1in; }
+    }
+    @media screen {
+      body { background:#eef2f7; padding:16px; }
+      .page { box-shadow:0 6px 16px rgba(0,0,0,.08); margin:16px auto; }
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin:0; color:#111827;
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+
+    .toolbar {
+      display:flex; gap:10px; justify-content:center; align-items:center;
+      padding:10px; background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+      margin:8px auto 16px; max-width:8.5in;
+    }
+    .toolbar button{ padding:8px 14px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-size:14px; }
+    .toolbar button:hover{ background:#f8fafc; }
+    .note{ font-size:13px; color:#475569; }
+
+    .page {
+  width:8.5in; min-height:11in; background:#fff; box-sizing:border-box;
+  padding:0.5in 0.05in 0.5in 0.05in; page-break-after:always;
+    }
+
+    .header { text-align:center; margin-top:-0.28in; margin-bottom:8px; }
+    .title { font-size:19px; font-weight:700; color:#1f2937; }
+    .sub   { font-size:12px; color:#4b5563; margin-top:2px; }
+
+    .meta {
+      display:flex; justify-content:space-between; gap:18px; font-size:12px; margin:8px 0 14px;
+    }
+    .meta .label{ font-weight:600; }
+    .meta .line{ display:inline-block; border-bottom:1.5px solid #cbd5e1; min-width:2.6in; height:0.9em; }
+
+    /* 5×5 grid without borders; clear separation using gaps only */
+    .grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  column-gap:8px;
+  row-gap:14px;
+  width:100%;
+  max-width:95%;
+  margin:0 auto;
+  justify-items:stretch;
+    }
+
+    .cell{
+  padding:3%;
+  min-height:0.8in;
+  min-width:0;
+  height:auto;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  border:2px solid #333;
+  border-radius:8px;
+  background:#fafafa;
+  box-shadow:1px 1px 4px rgba(0,0,0,0.07);
+  margin:2px 0;
+    }
+    .pnum{ font-size:11px; color:#6b7280; margin-bottom:6px; }
+
+    .prob{
+  display:flex; align-items:center; gap:10px;
+  font-size:26px; font-weight:600; line-height:1;
+  padding:10px 0 10px 0;
+    }
+    .eq{ margin:0 2px; }
+    .blank{ display:inline-block; width:1.25in; border-bottom:2.5px solid #111827; height:0.9em; }
+
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <label>Max Number:
+      <input type="number" id="maxNum" value="9" min="1" max="1000" style="width:4em;">
+    </label>
+    <label><input type="checkbox" id="addType" checked> +</label>
+    <label><input type="checkbox" id="subType" checked> −</label>
+  <!-- Multiplication and division options removed -->
+    <label><input type="checkbox" id="allowNeg"> Allow negative subtraction</label>
+  <!-- Allow decimal division option removed -->
+    <label>Problems/Page:
+      <input type="number" id="perPage" value="25" min="1" max="100" style="width:3em;">
+    </label>
+    <label>Pages:
+      <input type="number" id="numPages" value="20" min="1" max="100" style="width:3em;">
+    </label>
+    <label><input type="checkbox" id="showPageNum" checked> Show page numbers</label>
+    <button id="regen">Regenerate</button>
+    <button onclick="window.print()">Print</button>
+    <span class="note">New problems on each load or via “Regenerate”.</span>
+  </div>
+
+  <div id="root"></div>
+
+  <script>
+    function getOptions() {
+    let maxNum = Math.max(1, Math.min(1000, parseInt(document.getElementById('maxNum').value) || 9));
+      let types = {
+        add: document.getElementById('addType').checked,
+        sub: document.getElementById('subType').checked
+      };
+    // If no types selected, default to addition
+    if(!types.add && !types.sub && !types.mul && !types.div) types.add = true;
+    return {
+      maxNum: maxNum,
+      types: types,
+      allowNeg: document.getElementById('allowNeg').checked,
+  // allowDec option removed
+  perPage: Math.max(1, Math.min(40, parseInt(document.getElementById('perPage').value) || 25)),
+      numPages: Math.max(1, Math.min(100, parseInt(document.getElementById('numPages').value) || 20)),
+      showPageNum: document.getElementById('showPageNum').checked
+    };
+    }
+
+    const randi = (a,b)=> (Math.random()*(b-a+1)|0)+a;
+
+    function makeProblem(opts){
+  const {maxNum, types, allowNeg} = opts;
+      const enabled = Object.entries(types).filter(([k,v])=>v).map(([k])=>k);
+      const op = enabled[randi(0,enabled.length-1)];
+      let a = randi(0,maxNum), b = randi(0,maxNum);
+      if(op==="add") return {a,op:"+",b};
+      if(op==="sub") {
+        if(!allowNeg && a<b) [a,b]=[b,a];
+        return {a,op:"−",b};
+      }
+      // fallback
+      return {a,op:"+",b};
+    }
+
+    function uniqueProblems(n){
+      const set=new Set(), out=[];
+      const opts = getOptions();
+      let attempts = 0, maxAttempts = n * 50;
+      while(out.length<n && attempts < maxAttempts){
+        const p=makeProblem(opts), k=`${p.a}${p.op}${p.b}`;
+        if(!set.has(k) && p.a !== undefined && p.b !== undefined){ set.add(k); out.push(p); }
+        attempts++;
+      }
+      // If not enough unique problems, fill with simple addition problems
+      while(out.length < n){
+        out.push({a:1,op:"+",b:1});
+      }
+      return out;
+    }
+
+    function cellHTML(i,p){
+      return `<div class="cell">
+  <div class="pnum"></div>
+        <div class="prob">
+          <span class="num">${p.a}</span>
+          <span class="op">${p.op}</span>
+          <span class="num">${p.b}</span>
+          <span class="eq">=</span>
+          <span class="blank" aria-hidden="true"></span>
+        </div>
+      </div>`;
+    }
+
+    function pageHTML(pi){
+  const opts = getOptions();
+  const probs=uniqueProblems(opts.perPage);
+  const cells = probs.map((p,idx)=>cellHTML(idx+1,p)).join("");
+  // Build dynamic title
+  let typeNames = [];
+  if(opts.types.add) typeNames.push("Addition");
+  if(opts.types.sub) typeNames.push("Subtraction");
+  let title = typeNames.length ? typeNames.join(" & ") : "Math";
+  return `<section class="page">
+    <div class="header">
+      <div class="title">${title} Worksheet</div>
+      <div class="sub">Solve each problem.${opts.showPageNum ? ` Page ${pi+1} of ${opts.numPages}` : ""}</div>
+    </div>
+    <div class="meta">
+      <div><span class="label">Name:</span> <span class="line"></span></div>
+      <div><span class="label">Date:</span> <span class="line" style="min-width:1.8in;"></span></div>
+    </div>
+    <div class="grid">${cells}</div>
+  </section>`;
+    }
+
+    function render(){
+      const root=document.getElementById('root');
+  const opts = getOptions();
+  root.innerHTML = Array.from({length:opts.numPages},(_,i)=>pageHTML(i)).join('');
+    }
+
+    document.getElementById('regen').addEventListener('click', render);
+    window.addEventListener('DOMContentLoaded', render);
+    // Update worksheet when any option changes
+    ["maxNum","addType","subType","mulType","divType","allowNeg","allowDec","perPage","numPages","showPageNum"].forEach(id=>{
+      document.getElementById(id).addEventListener('change', render);
+    });
+  </script>
+</body>
+</html>
